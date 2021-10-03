@@ -1,0 +1,136 @@
+# %%
+from tensorflow.keras.applications import mobilenet, mobilenet_v2
+from sklearn.metrics import confusion_matrix, classification_report
+from tensorflow.keras.applications import VGG16, ResNet50, ResNet50V2, DenseNet121, DenseNet201
+from tensorflow.keras.applications import EfficientNetB0, EfficientNetB7, MobileNet, MobileNetV2
+from tensorflow.keras.layers import Dense, Dropout
+from tensorflow.keras.utils import to_categorical
+import tensorflow as tf
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import os
+import itertools
+import mlflow.tensorflow
+import mlflow
+# %%
+
+
+def prepare_data(data):
+    """ Prepare data for modeling 
+        input: data frame with labels und pixel data
+        output: image and label array """
+
+    image_array = np.zeros(shape=(len(data), 48, 48, 1))
+    image_label = np.array(list(map(int, data['emotion'])))
+
+    for i, row in enumerate(data.index):
+        image = np.fromstring(data.loc[row, 'pixels'], dtype=int, sep=' ')
+        image = np.reshape(image, (48, 48, 1))  # 灰階圖的channel數為1
+        image_array[i] = image
+
+    return image_array, image_label
+
+
+def convert_to_3_channels(img_arrays):
+    sample_size, nrows, ncols, c = img_arrays.shape
+    img_stack_arrays = np.zeros((sample_size, nrows, ncols, 3))
+    for _ in range(sample_size):
+        img_stack = np.stack(
+            [img_arrays[_][:, :, 0], img_arrays[_][:, :, 0], img_arrays[_][:, :, 0]], axis=-1)
+        img_stack_arrays[_] = img_stack/255
+    return img_stack_arrays
+
+
+def build_model(preModel=VGG16, num_classes=7):
+
+    if preModel in [DenseNet121, DenseNet201]:
+        pred_model = preModel(include_top=False, weights='imagenet',
+                              input_shape=(48, 48, 3),
+                              pooling='max')
+    else:
+        pred_model = preModel(include_top=False, weights='imagenet',
+                              input_shape=(48, 48, 3),
+                              pooling='max', classifier_activation='softmax')
+    output_layer = Dense(
+        num_classes, activation="softmax", name="output_layer")
+
+    model = tf.keras.Model(
+        pred_model.inputs, output_layer(pred_model.output))
+
+    model.compile(optimizer=tf.keras.optimizers.Adam(),
+                  loss=tf.keras.losses.CategoricalCrossentropy(), metrics=['accuracy'])
+
+    return model
+
+
+emotions = {0: 'Angry', 1: 'Disgust', 2: 'Fear',
+            3: 'Happy', 4: 'Sad', 5: 'Surprise', 6: 'Neutral'}
+# %% 資料讀取
+df_raw = pd.read_csv("D:/mycodes/AIFER/data/fer2013.csv")
+# 資料切割(訓練、驗證、測試)
+X_train, y_train = prepare_data(df_raw[df_raw['Usage'] == 'Training'])
+X_val, y_val = prepare_data(df_raw[df_raw['Usage'] == 'PublicTest'])
+X_train, X_val = convert_to_3_channels(X_train), convert_to_3_channels(X_val)
+y_train_oh, y_val_oh = to_categorical(y_train), to_categorical(y_val)
+
+# %% 建立預訓練模型
+preModelDict = {"ResNet50": ResNet50, "ResNet50V2": ResNet50V2, "DenseNet121": DenseNet121, "DenseNet201": DenseNet201,
+                "EfficientNetB0": EfficientNetB0, "EfficientNetB7": EfficientNetB7,
+                "MobileNet": MobileNet, "MobileNetV2": MobileNetV2}
+# 測試模型是否建立成功
+# for k, v in preModelDict.items():
+#     model = build_model(preModel=v)
+#     prob_res = model(X_train[:1]).numpy()
+#     print(f"{k} build successfully!")
+
+# %% 針對每種預訓練模型去訓練
+
+epochs = 30
+batch_size = 32
+preModelDoneList = ["ResNet50", "ResNet50V2", "DenseNet121",
+                    "DenseNet201", "EfficientNetB0", "EfficientNetB7", "MobileNet"]
+preModel255List = ["EfficientNetB0", "EfficientNetB7"]  # 0 ~ 255
+X_train_255 = X_train*255
+X_val_255 = X_val*255
+X_train_mobile = mobilenet.preprocess_input(X_train_255)
+X_val_mobile = mobilenet.preprocess_input(X_val_255)
+X_train_mobilev2 = mobilenet_v2.preprocess_input(X_train_255)
+X_val_mobilev2 = mobilenet_v2.preprocess_input(X_val_255)
+
+
+for k, v in preModelDict.items():
+    if k in preModelDoneList:  # 略過已經訓練好的
+        continue
+
+    elif k in preModel255List:  # 需要raw input的模型
+        model = build_model(preModel=v)
+        with mlflow.start_run(experiment_id=0, run_name=k+"_255"):
+            mlflow.tensorflow.autolog()
+            hist1 = model.fit(X_train_255, y_train_oh, validation_data=(X_val_255, y_val_oh),
+                              epochs=epochs, batch_size=batch_size)
+        mlflow.end_run()
+
+    elif k == "MobileNetV2":  # 需要raw input的模型
+        model = build_model(preModel=v)
+        with mlflow.start_run(experiment_id=0, run_name=k+"_neg"):
+            mlflow.tensorflow.autolog()
+            hist1 = model.fit(X_train_mobilev2, y_train_oh, validation_data=(X_val_mobilev2, y_val_oh),
+                              epochs=epochs, batch_size=batch_size)
+        mlflow.end_run()
+
+    elif k == "MobileNet":  # 需要raw input的模型
+        model = build_model(preModel=v)
+        with mlflow.start_run(experiment_id=0, run_name=k+"_neg"):
+            mlflow.tensorflow.autolog()
+            hist1 = model.fit(X_train_mobile, y_train_oh, validation_data=(X_val_mobile, y_val_oh),
+                              epochs=epochs, batch_size=batch_size)
+        mlflow.end_run()
+    else:
+        model = build_model(preModel=v)
+        with mlflow.start_run(experiment_id=0, run_name=k):
+            mlflow.tensorflow.autolog()
+            hist1 = model.fit(X_train, y_train_oh, validation_data=(X_val, y_val_oh),
+                              epochs=epochs, batch_size=batch_size)
+        mlflow.end_run()
+# %%
