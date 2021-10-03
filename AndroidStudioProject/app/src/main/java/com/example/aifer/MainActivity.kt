@@ -61,9 +61,7 @@ class MainActivity : AppCompatActivity() {
             val bitmap = image as Bitmap //將資料轉換成 Bitmap
             val imageView = findViewById<ImageView>(R.id.imageView)
             imageView.setImageBitmap(bitmap) //使用 Bitmap 設定圖像
-            if (requestCode == 0) {
-                imageView.rotation = +90f //使 ImageView 旋轉順時針90度
-            }
+            imageView.rotation = 90f //使 ImageView 旋轉順時針90度
             recognizeImage(bitmap) //使用 Bitmap 進行辨識
 
         }
@@ -71,6 +69,7 @@ class MainActivity : AppCompatActivity() {
             val uri = data!!.data
             val imageView = findViewById<ImageView>(R.id.imageView)
             imageView.setImageURI(uri)
+            imageView.rotation = 0f
             val drawable = imageView.drawable as BitmapDrawable //從imageView取得資料，轉換成Bitmap
             val bitmap = drawable.bitmap
             recognizeImage(bitmap) //使用 Bitmap 進行辨識
