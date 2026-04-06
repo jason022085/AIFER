@@ -16,6 +16,10 @@ import kotlin.math.roundToInt
 
 
 class MainActivity : AppCompatActivity() {
+
+    // Cache the model to prevent repeated disk loading during inference
+    private val model by lazy { Effb0FerMeta.newInstance(this) }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -76,12 +80,15 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        // Close the model to release resources
+        model.close()
+    }
+
     // 辨識圖像
     private fun recognizeImage(bitmap: Bitmap) {
         try {
-            // Loads my custom model
-            val model = Effb0FerMeta.newInstance(this)
-
             // Creates inputs for reference.
             val tensorImage = TensorImage.fromBitmap(bitmap)
 
