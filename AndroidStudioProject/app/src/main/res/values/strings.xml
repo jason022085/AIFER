@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">AIFER</string>
+    <string name="image_description">Image for facial expression recognition</string>
 </resources>
