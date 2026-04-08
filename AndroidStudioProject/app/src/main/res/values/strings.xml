@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">AIFER</string>
+    <string name="cd_main_image">Main expression image</string>
 </resources>
