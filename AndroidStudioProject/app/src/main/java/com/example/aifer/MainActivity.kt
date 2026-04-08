@@ -12,6 +12,7 @@ import com.example.aifer.ml.Effb0FerMeta
 import org.tensorflow.lite.support.image.TensorImage
 import java.io.IOException
 import android.graphics.drawable.BitmapDrawable
+import java.util.concurrent.Executors
 import kotlin.math.roundToInt
 
 
@@ -19,6 +20,9 @@ class MainActivity : AppCompatActivity() {
 
     // Cache the model to prevent repeated disk loading during inference
     private val model by lazy { Effb0FerMeta.newInstance(this) }
+
+    // Executor for background tasks
+    private val executor = Executors.newSingleThreadExecutor()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -82,38 +86,49 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        // Close the model to release resources
-        model.close()
+        // Queue the model close on the single thread executor to ensure it doesn't
+        // happen concurrently with a running inference, avoiding native crashes.
+        executor.execute {
+            model.close()
+        }
+        // Shut down the background executor
+        executor.shutdown()
     }
 
     // 辨識圖像
     private fun recognizeImage(bitmap: Bitmap) {
-        try {
-            // Creates inputs for reference.
-            val tensorImage = TensorImage.fromBitmap(bitmap)
+        // Run inference in a background thread to prevent blocking the UI
+        executor.execute {
+            try {
+                // Creates inputs for reference.
+                val tensorImage = TensorImage.fromBitmap(bitmap)
 
-            // Runs model inference and gets result.
-            val outputs = model.process(tensorImage)
-                .probabilityAsCategoryList.apply {
-                    sortByDescending { it.score } // 排序，由高到低
+                // Runs model inference and gets result.
+                val outputs = model.process(tensorImage)
+                    .probabilityAsCategoryList.apply {
+                        sortByDescending { it.score } // 排序，由高到低
+                    }
+
+                //取得辨識結果與可信度
+                val result = arrayListOf<String>()
+                for (output in outputs) {
+                    val label = output.label
+                    val score: Int = (output.score * 100).roundToInt()
+                    result.add("表情是 $label 的可能性為 $score %")
                 }
 
-            //取得辨識結果與可信度
-            val result = arrayListOf<String>()
-            for (output in outputs) {
-                val label = output.label
-                val score: Int = (output.score * 100).roundToInt()
-                result.add("表情是 $label 的可能性為 $score %")
+                //將結果顯示於 ListView
+                runOnUiThread {
+                    val listView = findViewById<ListView>(R.id.listView)
+                    listView.adapter = ArrayAdapter(
+                        this@MainActivity,
+                        android.R.layout.simple_list_item_1,
+                        result
+                    )
+                }
+            } catch (e: IOException) {
+                e.printStackTrace()
             }
-
-            //將結果顯示於 ListView
-            val listView = findViewById<ListView>(R.id.listView)
-            listView.adapter = ArrayAdapter(this,
-                android.R.layout.simple_list_item_1,
-                result
-            )
-        } catch (e: IOException) {
-            e.printStackTrace()
         }
     }
 }
