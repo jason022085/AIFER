@@ -21,6 +21,20 @@ class MainActivity : AppCompatActivity() {
     // Cache the model to prevent repeated disk loading during inference
     private val model by lazy { Effb0FerMeta.newInstance(this) }
 
+    // Cache views to avoid repeated view hierarchy lookups on the UI thread
+    private val imageView: ImageView by lazy { findViewById(R.id.imageView) }
+    private val listView: ListView by lazy { findViewById(R.id.listView) }
+
+    // Cache adapter to avoid reallocation and view rebuilds on every inference
+    private val listAdapter by lazy {
+        ArrayAdapter<String>(this, android.R.layout.simple_list_item_1).also {
+            listView.adapter = it
+        }
+    }
+
+    // Cache TensorImage to avoid repeated memory allocations during inference
+    private val tensorImage = TensorImage()
+
     // Executor for background tasks
     private val executor = Executors.newSingleThreadExecutor()
 
@@ -67,7 +81,6 @@ class MainActivity : AppCompatActivity() {
         if (requestCode == 0 && resultCode == RESULT_OK) {
             val image = data?.extras?.get("data") ?: return //取得資料
             val bitmap = image as Bitmap //將資料轉換成 Bitmap
-            val imageView = findViewById<ImageView>(R.id.imageView)
             imageView.setImageBitmap(bitmap) //使用 Bitmap 設定圖像
             imageView.rotation = 90f //使 ImageView 旋轉順時針90度
             recognizeImage(bitmap) //使用 Bitmap 進行辨識
@@ -75,7 +88,6 @@ class MainActivity : AppCompatActivity() {
         }
         if (requestCode == 1 && resultCode == RESULT_OK) {
             val uri = data!!.data
-            val imageView = findViewById<ImageView>(R.id.imageView)
             imageView.setImageURI(uri)
             imageView.rotation = 0f
             val drawable = imageView.drawable as BitmapDrawable //從imageView取得資料，轉換成Bitmap
@@ -100,8 +112,8 @@ class MainActivity : AppCompatActivity() {
         // Run inference in a background thread to prevent blocking the UI
         executor.execute {
             try {
-                // Creates inputs for reference.
-                val tensorImage = TensorImage.fromBitmap(bitmap)
+                // Load bitmap into cached TensorImage to prevent memory reallocation
+                tensorImage.load(bitmap)
 
                 // Runs model inference and gets result.
                 val outputs = model.process(tensorImage)
@@ -119,12 +131,10 @@ class MainActivity : AppCompatActivity() {
 
                 //將結果顯示於 ListView
                 runOnUiThread {
-                    val listView = findViewById<ListView>(R.id.listView)
-                    listView.adapter = ArrayAdapter(
-                        this@MainActivity,
-                        android.R.layout.simple_list_item_1,
-                        result
-                    )
+                    // Update the cached adapter's data instead of reallocating adapter and rebuilding list views
+                    listAdapter.clear()
+                    listAdapter.addAll(result)
+                    listAdapter.notifyDataSetChanged()
                 }
             } catch (e: IOException) {
                 e.printStackTrace()
