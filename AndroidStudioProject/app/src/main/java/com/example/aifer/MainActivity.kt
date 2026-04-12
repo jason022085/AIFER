@@ -43,6 +43,10 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        val listView = findViewById<ListView>(R.id.listView)
+        val emptyView = findViewById<TextView>(R.id.empty_view)
+        listView.emptyView = emptyView
+
         findViewById<Button>(R.id.btn_album).setOnClickListener {
             //建立一個要進行影像獲取的 Intent 物件
             val intent =
