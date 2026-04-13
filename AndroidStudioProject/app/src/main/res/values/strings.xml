@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">AIFER</string>
     <string name="cd_main_image">Main expression image</string>
+    <string name="empty_list_prompt">請選擇照片或拍照以進行辨識</string>
 </resources>
