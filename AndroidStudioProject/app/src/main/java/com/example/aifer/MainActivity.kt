@@ -21,6 +21,9 @@ class MainActivity : AppCompatActivity() {
     // Cache the model to prevent repeated disk loading during inference
     private val model by lazy { Effb0FerMeta.newInstance(this) }
 
+    // Cache TensorImage to prevent repeated memory allocations during inference
+    private val cachedTensorImage = TensorImage()
+
     // Executor for background tasks
     private val executor = Executors.newSingleThreadExecutor()
 
@@ -101,10 +104,10 @@ class MainActivity : AppCompatActivity() {
         executor.execute {
             try {
                 // Creates inputs for reference.
-                val tensorImage = TensorImage.fromBitmap(bitmap)
+                cachedTensorImage.load(bitmap)
 
                 // Runs model inference and gets result.
-                val outputs = model.process(tensorImage)
+                val outputs = model.process(cachedTensorImage)
                     .probabilityAsCategoryList.apply {
                         sortByDescending { it.score } // 排序，由高到低
                     }
