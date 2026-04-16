@@ -57,6 +57,10 @@ class MainActivity : AppCompatActivity() {
                 ).show()
             }
         }
+
+        val listView = findViewById<ListView>(R.id.listView)
+        val emptyView = findViewById<TextView>(R.id.emptyView)
+        listView.emptyView = emptyView
     }
 
     // 接收結果
