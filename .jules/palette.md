@@ -1,0 +1,3 @@
+## 2025-01-20 - Ensure Dynamic Lists Have Empty States
+**Learning:** For dynamic `ListView`s in Android, users need immediate feedback if the list is initially empty. Without an `emptyView`, the UI can appear broken or inactive, causing confusion.
+**Action:** Always implement an `emptyView` (`listView.emptyView = emptyView`) with a helpful prompt (e.g., "尚未辨識任何照片，請選擇拍照或從相簿選取。") for dynamic `ListView`s to provide clear user guidance and improve the overall UX.
