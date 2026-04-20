@@ -1,6 +1,3 @@
-## 2024-04-06 - Caching TFLite Model in Android Activity
-**Learning:** Loading a TFLite model from disk and allocating native memory on every inference call (`recognizeImage`) creates a severe performance bottleneck and memory churn in Android ML applications.
-**Action:** When implementing ML models in Android, always hoist the model instantiation to an instance property (e.g., using Kotlin's `by lazy`) and ensure native resources are properly released by calling `.close()` in the Activity's `onDestroy()` lifecycle method.
-## 2024-04-08 - TFLite Thread Safety
-**Learning:** Closing a TFLite model from the main thread (`onDestroy()`) while an inference (`model.process()`) is actively running on a background executor causes a native crash (SIGSEGV) due to concurrent resource access.
-**Action:** Always synchronize the model lifecycle by queuing the `.close()` operation on the same single-thread executor that handles inferences to guarantee sequential execution.
+## 2024-04-20 - [Optimize TensorImage Memory Allocation]
+**Learning:** During image inference loops on Android using TensorFlow Lite, `TensorImage.fromBitmap(bitmap)` allocates a new `TensorImage` instance (and internal buffers) for every incoming image frame, which triggers unnecessary garbage collection and memory churn during processing. Since inferences are executed sequentially on a `newSingleThreadExecutor`, a `TensorImage` instance can safely be cached and reused via `cachedTensorImage.load(bitmap)`.
+**Action:** When inspecting TFLite inference pathways, always cache and reuse `TensorImage` instances via `.load(bitmap)` to minimize GC overhead, ensuring the inference path is thread-safe or executed on a single thread.
