@@ -27,6 +27,10 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        // Set empty view for the list view to improve UX when there's no data
+        findViewById<ListView>(R.id.listView).emptyView = findViewById<TextView>(R.id.tv_empty_list)
+
         findViewById<Button>(R.id.btn_photo).setOnClickListener {
             //建立一個要進行影像獲取的 Intent 物件
 
