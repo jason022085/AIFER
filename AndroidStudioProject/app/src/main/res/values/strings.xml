@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">AIFER</string>
     <string name="cd_main_image">Main expression image</string>
+    <string name="empty_list_text">尚無辨識結果，請拍照或選擇照片。</string>
 </resources>
