@@ -24,6 +24,9 @@ class MainActivity : AppCompatActivity() {
     // Executor for background tasks
     private val executor = Executors.newSingleThreadExecutor()
 
+    // Cache the TensorImage to prevent repeated memory allocations during inference
+    private val tensorImage = TensorImage()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -101,7 +104,7 @@ class MainActivity : AppCompatActivity() {
         executor.execute {
             try {
                 // Creates inputs for reference.
-                val tensorImage = TensorImage.fromBitmap(bitmap)
+                tensorImage.load(bitmap)
 
                 // Runs model inference and gets result.
                 val outputs = model.process(tensorImage)
