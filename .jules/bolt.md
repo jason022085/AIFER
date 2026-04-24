@@ -4,3 +4,7 @@
 ## 2024-04-08 - TFLite Thread Safety
 **Learning:** Closing a TFLite model from the main thread (`onDestroy()`) while an inference (`model.process()`) is actively running on a background executor causes a native crash (SIGSEGV) due to concurrent resource access.
 **Action:** Always synchronize the model lifecycle by queuing the `.close()` operation on the same single-thread executor that handles inferences to guarantee sequential execution.
+
+## 2026-04-24 - [Android TFLite Inference TensorImage Caching]
+**Learning:** `TensorImage.fromBitmap(bitmap)` internally allocates a new `TensorImage` instance and loads the bitmap. During rapid successive inferences, this can cause GC churn and slight latency overhead.
+**Action:** Extract `TensorImage` instantiation into a class-level variable and reuse it by calling `.load(bitmap)` directly, especially when executions are guaranteed to run sequentially (e.g. within a `newSingleThreadExecutor()`).
