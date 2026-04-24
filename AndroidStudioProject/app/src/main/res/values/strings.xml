@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">AIFER</string>
     <string name="cd_main_image">Main expression image</string>
+    <string name="empty_list_prompt">請使用上方按鈕拍照或從相簿選擇圖片</string>
 </resources>
