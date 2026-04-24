@@ -24,6 +24,9 @@ class MainActivity : AppCompatActivity() {
     // Executor for background tasks
     private val executor = Executors.newSingleThreadExecutor()
 
+    // Cache TensorImage to avoid repeated memory allocations during inference
+    private val cachedTensorImage = TensorImage()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -100,11 +103,11 @@ class MainActivity : AppCompatActivity() {
         // Run inference in a background thread to prevent blocking the UI
         executor.execute {
             try {
-                // Creates inputs for reference.
-                val tensorImage = TensorImage.fromBitmap(bitmap)
+                // Loads bitmap into cached TensorImage to avoid memory allocation
+                cachedTensorImage.load(bitmap)
 
                 // Runs model inference and gets result.
-                val outputs = model.process(tensorImage)
+                val outputs = model.process(cachedTensorImage)
                     .probabilityAsCategoryList.apply {
                         sortByDescending { it.score } // 排序，由高到低
                     }
