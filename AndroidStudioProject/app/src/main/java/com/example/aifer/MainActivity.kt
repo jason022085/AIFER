@@ -27,6 +27,11 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        val listView = findViewById<ListView>(R.id.listView)
+        val emptyView = findViewById<TextView>(R.id.emptyView)
+        listView.emptyView = emptyView
+
         findViewById<Button>(R.id.btn_photo).setOnClickListener {
             //建立一個要進行影像獲取的 Intent 物件
 
