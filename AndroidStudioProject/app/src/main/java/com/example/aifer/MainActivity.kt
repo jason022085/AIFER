@@ -24,9 +24,18 @@ class MainActivity : AppCompatActivity() {
     // Executor for background tasks
     private val executor = Executors.newSingleThreadExecutor()
 
+    // Cache views and adapter to prevent repeated findViewById calls and allocations
+    private val imageView: ImageView by lazy { findViewById(R.id.imageView) }
+    private val listAdapter: ArrayAdapter<String> by lazy {
+        ArrayAdapter(this, android.R.layout.simple_list_item_1, ArrayList())
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        // Bind the cached adapter to the ListView
+        findViewById<ListView>(R.id.listView).adapter = listAdapter
         findViewById<Button>(R.id.btn_photo).setOnClickListener {
             //建立一個要進行影像獲取的 Intent 物件
 
@@ -67,7 +76,6 @@ class MainActivity : AppCompatActivity() {
         if (requestCode == 0 && resultCode == RESULT_OK) {
             val image = data?.extras?.get("data") ?: return //取得資料
             val bitmap = image as Bitmap //將資料轉換成 Bitmap
-            val imageView = findViewById<ImageView>(R.id.imageView)
             imageView.setImageBitmap(bitmap) //使用 Bitmap 設定圖像
             imageView.rotation = 90f //使 ImageView 旋轉順時針90度
             recognizeImage(bitmap) //使用 Bitmap 進行辨識
@@ -75,7 +83,6 @@ class MainActivity : AppCompatActivity() {
         }
         if (requestCode == 1 && resultCode == RESULT_OK) {
             val uri = data!!.data
-            val imageView = findViewById<ImageView>(R.id.imageView)
             imageView.setImageURI(uri)
             imageView.rotation = 0f
             val drawable = imageView.drawable as BitmapDrawable //從imageView取得資料，轉換成Bitmap
@@ -110,7 +117,7 @@ class MainActivity : AppCompatActivity() {
                     }
 
                 //取得辨識結果與可信度
-                val result = arrayListOf<String>()
+                val result = ArrayList<String>(outputs.size) // Pre-allocate capacity
                 for (output in outputs) {
                     val label = output.label
                     val score: Int = (output.score * 100).roundToInt()
@@ -119,12 +126,9 @@ class MainActivity : AppCompatActivity() {
 
                 //將結果顯示於 ListView
                 runOnUiThread {
-                    val listView = findViewById<ListView>(R.id.listView)
-                    listView.adapter = ArrayAdapter(
-                        this@MainActivity,
-                        android.R.layout.simple_list_item_1,
-                        result
-                    )
+                    listAdapter.clear()
+                    listAdapter.addAll(result)
+                    listAdapter.notifyDataSetChanged()
                 }
             } catch (e: IOException) {
                 e.printStackTrace()

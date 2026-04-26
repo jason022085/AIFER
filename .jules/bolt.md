@@ -4,3 +4,6 @@
 ## 2024-04-08 - TFLite Thread Safety
 **Learning:** Closing a TFLite model from the main thread (`onDestroy()`) while an inference (`model.process()`) is actively running on a background executor causes a native crash (SIGSEGV) due to concurrent resource access.
 **Action:** Always synchronize the model lifecycle by queuing the `.close()` operation on the same single-thread executor that handles inferences to guarantee sequential execution.
+## 2024-04-09 - Android UI Rendering Overhead
+**Learning:** Repeatedly instantiating new `ArrayAdapter` instances for `ListView`s triggers full layout measurements and invalidates view recycling, causing significant CPU overhead on the main thread. Additionally, repeatedly performing `findViewById` lookups within event callbacks forces expensive view hierarchy traversals.
+**Action:** When updating lists in Android, always cache view references using Kotlin's `by lazy` and reuse existing adapter instances by clearing their data and calling `addAll()` instead of creating new ones.

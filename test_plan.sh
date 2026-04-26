@@ -1,3 +1,4 @@
-export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+#!/bin/bash
 cd AndroidStudioProject
-./gradlew build
+export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+./gradlew lintDebug testDebugUnitTest
